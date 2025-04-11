@@ -44,6 +44,12 @@ const chatService = {
       method: 'POST',
       data: body,
     }),
+
+  getPermissionInMeeting: (payload: { conversationId: string }): Promise<{ isAllowed: boolean }> =>
+    http.axios.request({
+      method: 'GET',
+      url: `/api/v1/chat/conversations/${payload.conversationId}/permission`,
+    }),
 };
 
 export default chatService;

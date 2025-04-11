@@ -2,12 +2,13 @@ import { StreamVideoClient, User } from '@stream-io/video-react-sdk';
 import { get, isNil } from 'lodash';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { useChat } from 'src/auth/context/chat';
 import { useAuthContext } from 'src/auth/hooks';
-import chatService from 'src/package/services/chat.service';
 
 export default function useInitializeVideoClient(conversationId: string) {
   const { user, loading: userLoaded } = useAuthContext();
   const [videoClient, setVideoClient] = useState<StreamVideoClient | null>(null);
+  const { streamToken } = useChat();
 
   useEffect(() => {
     console.log('Initializing video client...');
@@ -33,10 +34,7 @@ export default function useInitializeVideoClient(conversationId: string) {
     const client = new StreamVideoClient({
       apiKey,
       user: streamUser,
-      tokenProvider: async () => {
-        const { token } = await chatService.getStreamToken({ conversationId });
-        return token;
-      },
+      tokenProvider: () => Promise.resolve(streamToken),
     });
 
     setVideoClient(client);

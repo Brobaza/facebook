@@ -55,6 +55,16 @@ const extractMentions = (rawMessage: string) => {
 };
 
 interface IChatContext {
+  checkMeetingPermission: UseMutateFunction<
+    boolean,
+    Error,
+    {
+      payload: {
+        conversationId: string;
+      };
+    },
+    unknown
+  >;
   deleteMessage: UseMutateFunction<
     object | null,
     Error,
@@ -125,9 +135,21 @@ interface IChatContext {
     total: number;
   };
   contactsLoading: boolean;
+  streamToken: string;
 }
 
 const chatContext = createContext<IChatContext>({
+  checkMeetingPermission: {} as UseMutateFunction<
+    boolean,
+    Error,
+    {
+      payload: {
+        conversationId: string;
+      };
+    },
+    unknown
+  >,
+
   // * conversations
   contacts: {
     items: [],
@@ -201,6 +223,7 @@ const chatContext = createContext<IChatContext>({
   loadingFetchMessages: false,
   isLoadingSendMessage: false,
   chatSocket: null,
+  streamToken: '',
 });
 
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
@@ -215,6 +238,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     items: User[];
     total: number;
   }>({ items: [], total: 0 });
+  const [streamToken, setStreamToken] = useState<string | null>(null);
   const [currentConversation, setCurrentConversation] = useState<IChatConversation | null>(null);
   const conversationsRef = useRef(conversations);
   const router = useRouter();
@@ -244,6 +268,23 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           items,
           total,
         };
+      } catch (error) {
+        return null;
+      }
+    },
+  });
+
+  const { refetch: refetchStreamToken } = useQuery({
+    queryKey: ['stream-token'],
+    enabled: !loadingAuth && isAuth,
+    queryFn: async () => {
+      try {
+        const res = await chatService.getStreamToken({ conversationId: 'ok' });
+        const { token } = res;
+
+        setStreamToken(token);
+
+        return token;
       } catch (error) {
         return null;
       }
@@ -752,6 +793,30 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     },
   });
 
+  const { mutate: checkMeetingAllowance } = useMutation({
+    mutationFn: async ({
+      payload,
+    }: {
+      payload: {
+        conversationId: string;
+      };
+    }) => {
+      const { conversationId } = payload;
+
+      try {
+        const { isAllowed } = await chatService.getPermissionInMeeting({
+          conversationId,
+        });
+
+        return isAllowed;
+      } catch (err) {
+        console.log('Error during check meeting allowance:', err);
+
+        return false;
+      }
+    },
+  });
+
   const { mutate: sendEmoji } = useMutation({
     mutationFn: async ({
       payload,
@@ -793,6 +858,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       refetch();
       refetchConservations();
       refetchContacts();
+      refetchStreamToken();
     }
   }, [isAuth, refetch, socket, loadingAuth]);
 
@@ -820,11 +886,15 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         conversationsLoading: isLoadingConservations,
         conversation: currentConversation,
         loadingConversation: isLoadingCurrentConservation,
+        checkMeetingPermission: checkMeetingAllowance,
         error,
 
         // * contacts
         contacts,
         contactsLoading: isLoadingContacts,
+
+        // * stream
+        streamToken: streamToken || '',
       }}
     >
       {children}

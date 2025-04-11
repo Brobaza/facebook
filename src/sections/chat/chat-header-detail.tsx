@@ -21,12 +21,13 @@ import { Iconify } from 'src/components/iconify';
 
 import { ChatHeaderSkeleton } from './chat-skeleton';
 
-import { useStreamVideoClient } from '@stream-io/video-react-sdk';
-import { isNil } from 'lodash';
+import { MemberRequest, useStreamVideoClient } from '@stream-io/video-react-sdk';
+import { isNil, map } from 'lodash';
 import { toast } from 'sonner';
 import { useChat } from 'src/auth/context/chat';
 import { useAuthContext } from 'src/auth/hooks';
 import type { UseNavCollapseReturn } from './hooks/use-collapse-nav';
+import { CallType } from './constants/constants';
 
 // ----------------------------------------------------------------------
 
@@ -44,39 +45,55 @@ export function ChatHeaderDetail({ collapseNav, participants, loading }: Props) 
   const client = useStreamVideoClient();
   const { user } = useAuthContext();
 
-  const createMeeting = useCallback(async () => {
-    if (!client) {
-      toast.error('Client not found');
-      return;
-    }
+  const createMeeting = useCallback(
+    async (callType: CallType) => {
+      if (!client) {
+        toast.error('Client not found');
+        return;
+      }
 
-    if (isNil(conversation)) {
-      toast.error('Conversation not found');
-      return;
-    }
+      if (isNil(conversation)) {
+        toast.error('Conversation not found');
+        return;
+      }
 
-    if (isNil(user)) {
-      toast.error('User not found');
-      return;
-    }
+      if (isNil(user)) {
+        toast.error('User not found');
+        return;
+      }
 
-    try {
-      const id = conversation.id;
+      try {
+        const id = conversation.id;
 
-      const call = client.call('default', id);
+        const call = client.call(callType, id);
 
-      await call.getOrCreate({
-        data: {
-          custom: { description: `Meeting created by user ${user.id}` },
-        },
-      });
+        const members: MemberRequest[] = map(participants, (participant) => ({
+          user_id: participant.id,
+          name: participant.name,
+          img: participant.avatar,
+        }));
 
-      window?.open(`${import.meta.env.VITE_BASE_DOMAIN_FE}/dashboard/meeting/${call.id}`, '_blank');
-    } catch (error) {
-      console.error(error);
-      toast.error('Something went wrong. Please try again later.');
-    }
-  }, [client, conversation, user]);
+        const starts_at = new Date(Date.now()).toISOString();
+
+        await call.getOrCreate({
+          data: {
+            custom: { description: `Meeting created by user ${user.id}` },
+            members,
+            starts_at,
+          },
+        });
+
+        window?.open(
+          `${import.meta.env.VITE_BASE_DOMAIN_FE}/dashboard/meeting/${call.id}?callType=${callType}`,
+          '_blank'
+        );
+      } catch (error) {
+        console.error(error);
+        toast.error('Something went wrong. Please try again later.');
+      }
+    },
+    [client, conversation, user]
+  );
 
   const lgUp = useResponsive('up', 'lg');
 
@@ -136,11 +153,11 @@ export function ChatHeaderDetail({ collapseNav, participants, loading }: Props) 
       {group ? renderGroup : renderSingle}
 
       <Stack direction="row" flexGrow={1} justifyContent="flex-end">
-        <IconButton onClick={createMeeting}>
+        <IconButton onClick={() => createMeeting(CallType.PRIVATE_VOICE_CALL)}>
           <Iconify icon="solar:phone-bold" />
         </IconButton>
 
-        <IconButton onClick={createMeeting}>
+        <IconButton onClick={() => createMeeting(CallType.PRIVATE_VIDEO_CALL)}>
           <Iconify icon="solar:videocamera-record-bold" />
         </IconButton>
 
