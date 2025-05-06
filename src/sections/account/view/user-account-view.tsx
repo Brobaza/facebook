@@ -5,23 +5,22 @@ import { paths } from 'src/routes/paths';
 
 import { useTabs } from 'src/hooks/use-tabs';
 
+import { _userAbout } from 'src/_mock';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { _userAbout, _userPlans, _userPayment, _userInvoices, _userAddressBook } from 'src/_mock';
 
-import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import { Iconify } from 'src/components/iconify';
 
-import { AccountGeneral } from '../account-general';
-import { AccountBilling } from '../account-billing';
-import { AccountSocialLinks } from '../account-social-links';
-import { AccountNotifications } from '../account-notifications';
 import { AccountChangePassword } from '../account-change-password';
+import { AccountGeneral } from '../account-general';
+import { AccountNotifications } from '../account-notifications';
+import { AccountSocialLinks } from '../account-social-links';
 
 // ----------------------------------------------------------------------
 
 const TABS = [
   { value: 'general', label: 'General', icon: <Iconify icon="solar:user-id-bold" width={24} /> },
-  { value: 'billing', label: 'Billing', icon: <Iconify icon="solar:bill-list-bold" width={24} /> },
+  // { value: 'billing', label: 'Billing', icon: <Iconify icon="solar:bill-list-bold" width={24} /> },
   {
     value: 'notifications',
     label: 'Notifications',
@@ -56,14 +55,14 @@ export function AccountView() {
 
       {tabs.value === 'general' && <AccountGeneral />}
 
-      {tabs.value === 'billing' && (
+      {/* {tabs.value === 'billing' && (
         <AccountBilling
           plans={_userPlans}
           cards={_userPayment}
           invoices={_userInvoices}
           addressBook={_userAddressBook}
         />
-      )}
+      )} */}
 
       {tabs.value === 'notifications' && <AccountNotifications />}
 

@@ -10,6 +10,7 @@ import { AuthGuard } from 'src/auth/guard';
 import { MediaHome } from 'src/sections/social';
 import ClientProvider from 'src/sections/chat/provider/stream-client.provider';
 import MeetingLink from 'src/sections/metting';
+import AuthMeetingProvider from 'src/sections/metting/provider/auth-meeting-provider';
 
 // ----------------------------------------------------------------------
 
@@ -91,7 +92,9 @@ const chatPage = (
 
 const meetingPage = (
   <ClientProvider>
-    <MeetingLink />
+    <AuthMeetingProvider>
+      <MeetingLink />
+    </AuthMeetingProvider>
   </ClientProvider>
 );
 
@@ -105,7 +108,7 @@ export const dashboardRoutes = [
         element: layoutFacebook,
         children: [
           { element: <UserProfilePage />, index: true },
-          { path: 'profile', element: <UserProfilePage /> },
+          { path: 'edit', element: <UserAccountPage /> },
           // { path: 'cards', element: <UserCardsPage /> },
           // { path: 'list', element: <UserListPage /> },
           // { path: 'new', element: <UserCreatePage /> },

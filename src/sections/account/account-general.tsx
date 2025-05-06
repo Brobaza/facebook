@@ -16,7 +16,7 @@ import { fData } from 'src/utils/format-number';
 import { toast } from 'src/components/snackbar';
 import { Form, Field, schemaHelper } from 'src/components/hook-form';
 
-import { useMockedUser } from 'src/auth/hooks';
+import { useAuthContext, useMockedUser } from 'src/auth/hooks';
 
 // ----------------------------------------------------------------------
 
@@ -41,12 +41,12 @@ export const UpdateUserSchema = zod.object({
 });
 
 export function AccountGeneral() {
-  const { user } = useMockedUser();
+  const { user } = useAuthContext();
 
   const defaultValues = {
     displayName: user?.displayName || '',
     email: user?.email || '',
-    photoURL: user?.photoURL || null,
+    avatar: user?.avatar || null,
     phoneNumber: user?.phoneNumber || '',
     country: user?.country || '',
     address: user?.address || '',
@@ -91,7 +91,7 @@ export function AccountGeneral() {
             }}
           >
             <Field.UploadAvatar
-              name="photoURL"
+              name="avatar"
               maxSize={3145728}
               helperText={
                 <Typography

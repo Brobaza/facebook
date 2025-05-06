@@ -34,7 +34,9 @@ export default function useInitializeVideoClient(conversationId: string) {
     const client = new StreamVideoClient({
       apiKey,
       user: streamUser,
-      tokenProvider: () => Promise.resolve(streamToken),
+      tokenProvider: async () => {
+        return streamToken;
+      },
     });
 
     setVideoClient(client);
@@ -43,7 +45,7 @@ export default function useInitializeVideoClient(conversationId: string) {
       client.disconnectUser();
       setVideoClient(null);
     };
-  }, [user, userLoaded]);
+  }, [user, userLoaded, streamToken]);
 
   return videoClient;
 }

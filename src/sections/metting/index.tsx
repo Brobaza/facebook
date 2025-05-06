@@ -20,7 +20,8 @@ import { useAuthContext } from 'src/auth/hooks';
 import { usePopover } from 'src/components/custom-popover';
 import { Iconify } from 'src/components/iconify';
 import { useRouter, useSearchParams } from 'src/routes/hooks';
-import { isNil } from 'lodash';
+import { isEmpty, isNil, size } from 'lodash';
+import { useChat } from 'src/auth/context/chat';
 
 export default function MeetingLink() {
   const { id = '' } = useParams();
@@ -41,8 +42,6 @@ export default function MeetingLink() {
 
     const joinCall = async () => {
       try {
-        console.log('call members: ', call.state.members);
-
         await call.join();
       } catch (error) {
         console.error('Error joining call:', error);
@@ -50,28 +49,40 @@ export default function MeetingLink() {
     };
 
     joinCall();
+
+    return () => {
+      if (call) {
+        call.leave();
+      }
+    };
   }, [client, user, call]);
 
   if (!client || !call) {
     return (
       <div className="flex h-screen items-center justify-center">
+        {isNil(callType) || (isEmpty(id) && <p>Đường link truy cập không đúng</p>)}
         <Iconify icon="line-md:loading-loop" className="mx-auto" />
       </div>
     );
   }
 
   return (
-    <div className="h-screen w-full relative overflow-hidden">
-      <StreamCall call={call}>
-        <MeetingUI />
-      </StreamCall>
-    </div>
+    <StreamCall call={call}>
+      <MeetingUI conversationId={id} callType={callType} />
+    </StreamCall>
   );
 }
 
-const MeetingUI = () => {
+const MeetingUI = ({
+  conversationId,
+  callType,
+}: {
+  conversationId: string;
+  callType: string | null;
+}) => {
   const { user } = useAuthContext();
   const router = useRouter();
+  const { endMeeting } = useChat();
   const { useParticipants } = useCallStateHooks();
   const participants = useParticipants();
   const currentCall = useCall();
@@ -108,8 +119,17 @@ const MeetingUI = () => {
 
       <div className="flex justify-center items-center gap-4">
         <CallControls
-          onLeave={() => {
-            currentCall?.leave();
+          onLeave={async () => {
+            if (size(participants) === 1) {
+              endMeeting({
+                payload: { conversationId, callType: (callType || '') as any },
+              });
+            }
+
+            await currentCall?.leave();
+
+            if (size(participants) === 1) await currentCall?.delete();
+
             router.push('/dashboard');
           }}
         />

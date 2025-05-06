@@ -10,6 +10,7 @@ import { SocketNamespace } from './constants';
 // ----------------------------------------------------------------------
 
 export const createSocketClient = (namespace: SocketNamespace, query: any = {}) => {
+  console.log('Socket URL:', `${import.meta.env.VITE_SOCKET_URL}/${namespace}`);
   return Io(`${import.meta.env.VITE_SOCKET_URL}/${namespace}`, {
     autoConnect: false,
     transports: ['websocket'],

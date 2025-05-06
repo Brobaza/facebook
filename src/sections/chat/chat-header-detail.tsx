@@ -40,7 +40,7 @@ type Props = {
 export function ChatHeaderDetail({ collapseNav, participants, loading }: Props) {
   const popover = usePopover();
 
-  const { conversation } = useChat();
+  const { conversation, startMeeting } = useChat();
 
   const client = useStreamVideoClient();
   const { user } = useAuthContext();
@@ -82,6 +82,8 @@ export function ChatHeaderDetail({ collapseNav, participants, loading }: Props) 
             starts_at,
           },
         });
+
+        startMeeting({ payload: { conversationId: id, callType: callType as any } });
 
         window?.open(
           `${import.meta.env.VITE_BASE_DOMAIN_FE}/dashboard/meeting/${call.id}?callType=${callType}`,

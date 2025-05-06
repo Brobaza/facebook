@@ -44,7 +44,6 @@ export const SignUpSchema = zod.object({
   location: zod.string().optional(),
 });
 
-
 // ----------------------------------------------------------------------
 
 export function JwtSignUpView() {
@@ -57,11 +56,11 @@ export function JwtSignUpView() {
   const [errorMsg, setErrorMsg] = useState('');
 
   const defaultValues = {
-    "name": "Hello my friend",
-    "email": "hello@example.com",
-    "phone_number": "+841234567890",
-    "password": "",
-    "location": "In my heart <3"
+    name: 'Hello my friend',
+    email: 'hello@example.com',
+    phone_number: '+841234567890',
+    password: '',
+    location: 'In my heart <3',
   };
 
   const methods = useForm<SignUpSchemaType>({
@@ -76,16 +75,20 @@ export function JwtSignUpView() {
 
   const onSubmit = handleSubmit(async (data) => {
     try {
-      await signUp({
+      const isSuccess = await signUp({
         email: data.email,
         password: data.password,
         name: data.name,
         location: data.location,
-        phone_number: data.phone_number
+        phoneNumber: data.phone_number,
       });
-      await checkUserSession?.();
 
-      router.refresh();
+      if (isSuccess) {
+        await checkUserSession?.();
+        router.refresh();
+      } else {
+        setErrorMsg('Email or phone number already exists');
+      }
     } catch (error) {
       console.error(error);
       setErrorMsg(error instanceof Error ? error.message : error);

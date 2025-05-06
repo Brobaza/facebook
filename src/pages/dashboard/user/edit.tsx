@@ -6,15 +6,14 @@ import { CONFIG } from 'src/config-global';
 import { _userList } from 'src/_mock/_user';
 
 import { UserEditView } from 'src/sections/user/view';
+import { useAuthContext } from 'src/auth/hooks';
 
 // ----------------------------------------------------------------------
 
 const metadata = { title: `User edit | Dashboard - ${CONFIG.site.name}` };
 
 export default function Page() {
-  const { id = '' } = useParams();
-
-  const currentUser = _userList.find((user) => user.id === id);
+  const { user } = useAuthContext();
 
   return (
     <>
@@ -22,7 +21,7 @@ export default function Page() {
         <title> {metadata.title}</title>
       </Helmet>
 
-      <UserEditView user={currentUser} />
+      <UserEditView user={user as any} />
     </>
   );
 }

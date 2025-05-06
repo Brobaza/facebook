@@ -13,7 +13,7 @@ export type SignInParams = {
 export type SignUpParams = {
   name: string;
   email: string;
-  phone_number: string;
+  phoneNumber: string;
   password: string;
   location?: string;
 };
@@ -50,13 +50,13 @@ export const signUp = async ({
   password,
   name,
   location,
-  phone_number,
-}: SignUpParams): Promise<void> => {
+  phoneNumber,
+}: SignUpParams): Promise<boolean> => {
   const params = {
     email,
     password,
     name,
-    phone_number,
+    phoneNumber,
     location,
   };
 
@@ -70,9 +70,12 @@ export const signUp = async ({
     }
 
     sessionStorage.setItem(STORAGE_KEY, accessToken);
+
+    return true;
   } catch (error) {
     console.error('Error during sign up:', error);
-    throw error;
+    // throw error;
+    return false;
   }
 };
 

@@ -10,7 +10,7 @@ import { fToNow } from 'src/utils/format-time';
 
 import { Iconify } from 'src/components/iconify';
 
-import { find, get, head, isEmpty, isNil } from 'lodash';
+import { find, get, head, isEmpty, isNil, takeRight, join, split } from 'lodash';
 import { useCallback, useState } from 'react';
 import { useChat } from 'src/auth/context/chat';
 import { useAuthContext } from 'src/auth/hooks';
@@ -95,6 +95,120 @@ export function ChatMessageItem({
 
       {fToNow(createdAt)}
     </Typography>
+  );
+
+  const renderNoti = (
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        my: 2,
+      }}
+    >
+      <Box
+        sx={{
+          backgroundColor: 'rgba(255, 255, 255, 0.08)', // tone sáng trên dark theme
+          color: '#ccc',
+          borderRadius: '16px',
+          px: 2,
+          py: 0.5,
+          fontSize: 13,
+        }}
+      >
+        <Typography variant="body2" sx={{ fontSize: 13 }}>
+          {message.body}
+        </Typography>
+      </Box>
+    </Box>
+  );
+
+  const renderCall = (
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        mt: 2,
+      }}
+    >
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={2}
+        sx={{
+          backgroundColor: '#2c2f33',
+          borderRadius: 3,
+          padding: 2,
+          boxShadow: 3,
+          maxWidth: '90%',
+          minWidth: 280,
+        }}
+      >
+        <Box
+          sx={{
+            borderRadius: '50%',
+            padding: '2px',
+            border: '3px solid',
+            borderColor: 'blue green',
+            position: 'relative',
+          }}
+        >
+          <Avatar
+            alt="Caller"
+            src={me ? get(user, 'avatar', '') : senderDetails?.avatarUrl}
+            sx={{ width: 60, height: 60 }}
+          />
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: -10,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              bgcolor: 'black',
+              color: 'white',
+              px: 1,
+              borderRadius: 1,
+              fontSize: '0.7rem',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {me
+              ? join(takeRight(split(get(user, 'name', ''), ' '), 2), ' ')
+              : senderDetails?.firstName}
+          </Box>
+        </Box>
+
+        <Typography
+          variant="subtitle1"
+          sx={{
+            fontWeight: 600,
+            color: '#ffffff',
+          }}
+        >
+          Ringing
+        </Typography>
+
+        <Stack direction="row" spacing={1}>
+          <IconButton
+            sx={{
+              backgroundColor: '#388e3c',
+              '&:hover': { backgroundColor: '#2e7d32' },
+              color: '#fff',
+            }}
+          >
+            <Iconify icon="ic:baseline-call" width={24} height={24} />
+          </IconButton>
+          <IconButton
+            sx={{
+              backgroundColor: '#d32f2f',
+              '&:hover': { backgroundColor: '#c62828' },
+              color: '#fff',
+            }}
+          >
+            <Iconify icon="ic:baseline-call-end" width={24} height={24} />
+          </IconButton>
+        </Stack>
+      </Stack>
+    </Box>
   );
 
   const renderReply = message?.replyInfo && (
@@ -390,6 +504,14 @@ export function ChatMessageItem({
     </Stack>
   );
 
+  if (message?.contentType === 'call') {
+    return renderCall;
+  }
+
+  if (message?.contentType === 'noti') {
+    return renderNoti;
+  }
+
   return (
     <Stack direction="row" justifyContent={me ? 'flex-end' : 'unset'} sx={{ mb: 5 }}>
       {!me && <Avatar alt={firstName} src={avatarUrl} sx={{ width: 32, height: 32, mr: 2 }} />}
@@ -413,3 +535,95 @@ export function ChatMessageItem({
     </Stack>
   );
 }
+
+const CallCard = () => {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        mt: 2,
+      }}
+    >
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={2}
+        sx={{
+          backgroundColor: '#2c2f33', // màu nền tối
+          borderRadius: 3,
+          padding: 2,
+          boxShadow: 3,
+          maxWidth: '90%',
+          minWidth: 280,
+        }}
+      >
+        {/* Avatar */}
+        <Box
+          sx={{
+            borderRadius: '50%',
+            padding: '2px',
+            border: '3px solid',
+            borderColor: 'blue green',
+            position: 'relative',
+          }}
+        >
+          <Avatar
+            alt="Alice"
+            src="https://randomuser.me/api/portraits/women/44.jpg"
+            sx={{ width: 60, height: 60 }}
+          />
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: -10,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              bgcolor: 'black',
+              color: 'white',
+              px: 1,
+              borderRadius: 1,
+              fontSize: '0.7rem',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Alice
+          </Box>
+        </Box>
+
+        {/* Trạng thái */}
+        <Typography
+          variant="subtitle1"
+          sx={{
+            fontWeight: 600,
+            color: '#ffffff',
+          }}
+        >
+          Ringing
+        </Typography>
+
+        {/* Nút gọi & hủy */}
+        <Stack direction="row" spacing={1}>
+          <IconButton
+            sx={{
+              backgroundColor: '#388e3c',
+              '&:hover': { backgroundColor: '#2e7d32' },
+              color: '#fff',
+            }}
+          >
+            <Iconify icon="ic:baseline-call" width={24} height={24} />
+          </IconButton>
+          <IconButton
+            sx={{
+              backgroundColor: '#d32f2f',
+              '&:hover': { backgroundColor: '#c62828' },
+              color: '#fff',
+            }}
+          >
+            <Iconify icon="ic:baseline-call-end" width={24} height={24} />
+          </IconButton>
+        </Stack>
+      </Stack>
+    </Box>
+  );
+};

@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
-import { useChat } from 'src/auth/context/chat';
+import chatService from 'src/package/services/chat.service';
 
 interface AuthMeetingProviderProps {
   children: React.ReactNode;
@@ -8,21 +8,35 @@ interface AuthMeetingProviderProps {
 
 export default function AuthMeetingProvider({ children }: AuthMeetingProviderProps) {
   const { id = '' } = useParams();
-  const { checkMeetingPermission } = useChat();
+  const [isAllowedToJoin, setIsAllowedToJoin] = useState<boolean | null>(null);
 
-  const isAllowedToJoin = useMemo(() => {
-    const isAllowed = checkMeetingPermission({ payload: { conversationId: id } });
+  useEffect(() => {
+    const checkPermission = async () => {
+      const { isAllowed } = await chatService.getPermissionInMeeting({
+        conversationId: id,
+      });
 
-    return isAllowed;
+      setIsAllowedToJoin(isAllowed);
+    };
+
+    checkPermission();
   }, [id]);
 
-  // if (!isAllowedToJoin) {
-  //   return (
-  //     <div className="flex h-screen items-center justify-center">
-  //       <p>You don't have permission to join this meeting.</p>
-  //     </div>
-  //   );
-  // }
+  if (isAllowedToJoin === null) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <p>Checking permission...</p>
+      </div>
+    );
+  }
 
-  return <div className="flex h-screen items-center justify-center">{children}</div>;
+  if (!isAllowedToJoin) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <p>You don't have permission to join this meeting.</p>
+      </div>
+    );
+  }
+
+  return <div className="h-screen w-full relative overflow-hidden">{children}</div>;
 }

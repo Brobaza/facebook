@@ -63,7 +63,7 @@ export const _account = [
   },
   {
     label: 'Account settings',
-    href: '#',
+    href: '/dashboard/user/edit',
     icon: <Iconify icon="solar:settings-bold-duotone" />,
   },
 ];

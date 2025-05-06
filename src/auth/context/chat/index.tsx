@@ -1,4 +1,5 @@
 import { User } from '@auth0/auth0-react';
+import { CallType } from '@stream-io/video-react-sdk';
 import { UseMutateFunction, useMutation, useQuery } from '@tanstack/react-query';
 import { concat, filter, find, get, includes, isEmpty, isNil, map } from 'lodash';
 import {
@@ -55,6 +56,7 @@ const extractMentions = (rawMessage: string) => {
 };
 
 interface IChatContext {
+  // * meeting
   checkMeetingPermission: UseMutateFunction<
     boolean,
     Error,
@@ -65,6 +67,32 @@ interface IChatContext {
     },
     unknown
   >;
+  startMeeting: UseMutateFunction<
+    object | null,
+    Error,
+    {
+      payload: {
+        conversationId: string;
+        callType: CallType;
+      };
+      onSuccess?: VoidFunction;
+    },
+    unknown
+  >;
+  endMeeting: UseMutateFunction<
+    object | null,
+    Error,
+    {
+      payload: {
+        conversationId: string;
+        callType: CallType;
+      };
+      onSuccess?: VoidFunction;
+    },
+    unknown
+  >;
+
+  // * chat
   deleteMessage: UseMutateFunction<
     object | null,
     Error,
@@ -139,6 +167,30 @@ interface IChatContext {
 }
 
 const chatContext = createContext<IChatContext>({
+  startMeeting: {} as UseMutateFunction<
+    object | null,
+    Error,
+    {
+      payload: {
+        conversationId: string;
+        callType: CallType;
+      };
+      onSuccess?: VoidFunction;
+    },
+    unknown
+  >,
+  endMeeting: {} as UseMutateFunction<
+    object | null,
+    Error,
+    {
+      payload: {
+        conversationId: string;
+        callType: CallType;
+      };
+      onSuccess?: VoidFunction;
+    },
+    unknown
+  >,
   checkMeetingPermission: {} as UseMutateFunction<
     boolean,
     Error,
@@ -228,6 +280,18 @@ const chatContext = createContext<IChatContext>({
 
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const { authenticated: isAuth, loading: loadingAuth } = useAuthContext();
+  const [callList, setCallList] = useState<
+    {
+      id: string;
+      from: {
+        id: string;
+        name: string;
+        avatar: string;
+      };
+      conversationId: string;
+      callType: CallType;
+    }[]
+  >([]);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [error, setError] = useState<any>(null);
   const [conversations, setConversations] = useState<{
@@ -238,7 +302,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     items: User[];
     total: number;
   }>({ items: [], total: 0 });
-  const [streamToken, setStreamToken] = useState<string | null>(null);
+  const [streamToken, setStreamToken] = useState<string>('');
   const [currentConversation, setCurrentConversation] = useState<IChatConversation | null>(null);
   const conversationsRef = useRef(conversations);
   const router = useRouter();
@@ -329,7 +393,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           setCurrentConversation(data);
 
           if (includes(map(conversations.items, 'id'), selectedConversationId)) {
-            const newConversations = map(conversations.items, (item) => {
+            const newConversations = map(get(conversations, 'items', []), (item) => {
               if (item.id === selectedConversationId) {
                 return data;
               }
@@ -342,7 +406,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
             });
           } else {
             setConversations({
-              items: [...conversations.items, data],
+              items: [...get(conversations, 'items', []), data],
               total: conversations.total + 1,
             });
           }
@@ -363,6 +427,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       try {
         if (isNil(socket)) {
           const client = createSocketClient(SocketNamespace.CHAT);
+          console.log(client);
 
           client?.connect();
 
@@ -564,8 +629,9 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
             const replyInfo = get(data, 'replyInfo', null);
 
             setConversations((prev) => {
-              const currentConversationList = prev.items;
-              const existingConversation = currentConversationList.find(
+              const currentConversationList = prev?.items;
+              const existingConversation = find(
+                currentConversationList || [],
                 (item) => item.id === conversationId
               );
 
@@ -575,7 +641,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
                   .then((res) => {
                     if (!isNil(res)) {
                       setConversations((prevState) => ({
-                        items: [res, ...prevState.items],
+                        items: [res, ...get(prevState, 'items', [])],
                         total: prevState.total,
                       }));
                     } else {
@@ -753,6 +819,72 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     },
   });
 
+  const { mutate: startMeeting } = useMutation({
+    mutationFn: async ({
+      payload,
+      onSuccess,
+    }: {
+      payload: {
+        conversationId: string;
+        callType: CallType;
+      };
+      onSuccess?: VoidFunction;
+    }) => {
+      if (isNil(socket)) {
+        toast.error('Bạn phải đăng nhập mới được bắt đầu cuộc gọi');
+        return {};
+      }
+
+      if (isEmpty(payload?.conversationId)) {
+        toast.error('Vui lòng chọn hội thoại để gọi');
+        return {};
+      }
+
+      const { conversationId, callType } = payload;
+
+      socket?.emit('create-meeting', {
+        conversationId,
+        callType,
+      });
+      onSuccess?.();
+
+      return null;
+    },
+  });
+
+  const { mutate: endMeeting } = useMutation({
+    mutationFn: async ({
+      payload,
+      onSuccess,
+    }: {
+      payload: {
+        conversationId: string;
+        callType: CallType;
+      };
+      onSuccess?: VoidFunction;
+    }) => {
+      if (isNil(socket)) {
+        toast.error('Bạn phải đăng nhập');
+        return {};
+      }
+
+      if (isEmpty(payload?.conversationId)) {
+        toast.error('Không tìm thấy cuộc gọi');
+        return {};
+      }
+
+      const { conversationId, callType } = payload;
+
+      socket?.emit('end-meeting', {
+        conversationId,
+        callType,
+      });
+      onSuccess?.();
+
+      return null;
+    },
+  });
+
   const { mutate: sendImage, isPending: isPendingSendImage } = useMutation({
     mutationFn: async ({
       payload,
@@ -871,6 +1003,10 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   return (
     <chatContext.Provider
       value={{
+        // * meeting
+        startMeeting,
+        endMeeting,
+
         // * chat
         sendEmoji,
         sendMessage,
@@ -894,7 +1030,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         contactsLoading: isLoadingContacts,
 
         // * stream
-        streamToken: streamToken || '',
+        streamToken: streamToken,
       }}
     >
       {children}
